@@ -52,20 +52,16 @@ export const addToCart = async (req, res) => {
         // Recalcular el total del carrito
         cart.total += subTotal
         await cart.save()
-        return res
-            .status(200)
-            .send({
-                message: 'Producto agregado al carrito exitosamente.',
-                cart,
-            })
+        return res.status(200).send({
+            message: 'Producto agregado al carrito exitosamente.',
+            cart,
+        })
     } catch (error) {
         console.error('Error al agregar producto al carrito:', error)
-        return res
-            .status(500)
-            .send({
-                message: 'Ocurrió un error al agregar producto al carrito.',
-                error,
-            })
+        return res.status(500).send({
+            message: 'Ocurrió un error al agregar producto al carrito.',
+            error,
+        })
     }
 }
 
@@ -83,11 +79,25 @@ export const completePurchase = async (req, res) => {
                 .send({ message: 'El carrito de compras está vacío.' })
         }
 
-        // Calcular el total de la compra
-        let total = 0
-        for (const item of cart.products) {
-            total += item.subTotal
+        // Validar que los productos en la solicitud coincidan con los del carrito
+        for (const item of products) {
+            const cartProduct = cart.products.find(
+                (cartItem) => cartItem.product.toString() === item.product
+            )
+            if (!cartProduct) {
+                return res.status(400).send({
+                    message: `El producto con ID ${item.product} no se encuentra en el carrito.`,
+                })
+            }
+            if (item.quantity !== cartProduct.quantity) {
+                return res.status(400).send({
+                    message: `La cantidad del producto con ID ${item.product} no coincide con la del carrito.`,
+                })
+            }
         }
+
+        // Calcular el total de la compra
+        const total = cart.total
 
         // Crear la factura
         const bill = new Bill({
@@ -119,19 +129,30 @@ export const completePurchase = async (req, res) => {
 
         // Generar PDF de la factura
         const doc = new PDFDocument()
-        doc.pipe(fs.createWriteStream(`factura_${bill._id}.pdf`)) // Guardar el PDF con un nombre único basado en el ID de la factura
+        const fileName = `factura_${bill._id}.pdf`
+        doc.pipe(fs.createWriteStream(fileName)) // Guardar el PDF con un nombre único basado en el ID de la factura
 
         // Agregar contenido al PDF
-        doc.fontSize(12).text(`Factura ID: ${bill._id}`)
-        doc.fontSize(12).text(`Usuario: ${userIdFromToken}`)
-        doc.fontSize(12).text(`Nit: ${nit}`)
-        doc.fontSize(12).text('Productos:')
+        doc.fontSize(16)
+            .text(`Factura ID: ${bill._id}`, { underline: true })
+            .moveDown()
+        doc.fontSize(12).text(`Usuario: ${userIdFromToken}`).moveDown()
+        doc.fontSize(12).text(`Nit: ${nit}`).moveDown()
+        doc.fontSize(14).text('Productos:', { underline: true }).moveDown()
         for (const item of products) {
-            doc.fontSize(12).text(
-                `${item.quantity} x ${item.name} - ${item.subTotal}`
-            )
+            const product = await Product.findById(item.product)
+            if (!product) {
+                console.error('Producto no encontrado:', item.product)
+                continue
+            }
+            doc.fontSize(12)
+                .text(`${item.quantity} x ${product.name}`)
+                .moveDown()
         }
-        doc.fontSize(12).text(`Total: ${total}`)
+        doc.fontSize(14)
+            .text(`Total: $${total}`, { underline: true })
+            .moveDown()
+
         doc.end()
 
         return res
@@ -139,33 +160,9 @@ export const completePurchase = async (req, res) => {
             .json({ message: 'Compra completada con éxito.', bill })
     } catch (error) {
         console.error('Error al completar la compra:', error)
-        return res
-            .status(500)
-            .json({
-                message: 'Ocurrió un error al completar la compra.',
-                error,
-            })
-    }
-}
-
-export const getPurchaseHistory = async (req, res) => {
-    try {
-        const userId = req.user._id // Obtener el ID del usuario desde la sesión
-        const purchases = await Bill.find({ user: userId }).populate({
-            path: 'products.product',
-            model: 'Product',
+        return res.status(500).json({
+            message: 'Ocurrió un error al completar la compra.',
+            error,
         })
-        res.status(200).send(purchases)
-    } catch (error) {
-        res.status(500).send({ message: error.message })
-    }
-}
-// VISUALIZAR PRODUCTOS
-export const getAllProducts = async (req, res) => {
-    try {
-        const products = await Product.getAllProducts()
-        res.status(200).send(products)
-    } catch (error) {
-        res.status(500).send({ message: error.message })
     }
 }

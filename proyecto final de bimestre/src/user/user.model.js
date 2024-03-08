@@ -38,7 +38,6 @@ role: {
     type: String,
     required: true,
     enum: ['ADMIN', 'CLIENT'],
-    default: 'CLIENT'
     
 }
 },
