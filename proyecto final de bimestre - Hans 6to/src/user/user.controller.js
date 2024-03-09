@@ -14,6 +14,8 @@ export const registerUser = async (req, res) => {
         let data = req.body
         //Encriptar la contraseña
         data.password = await encrypt(data.password)
+        //Asignar el rol por defecto
+        data.role = 'CLIENT'
         //Guardar la información en la BD
         let user = new User(data)
         await user.save() //Guardar en la BD
@@ -33,8 +35,9 @@ export const registerAdmin = async (req, res) => {
     try {
         let data = req.body
         //Encriptar la contraseña
-
         data.password = await encrypt(data.password)
+        //Asignar el rol para la administrador
+        data.role = 'ADMIN'
         //Guardar la información en la BD
         let user = new User(data)
         await user.save() //Guardar en la BD
@@ -46,7 +49,7 @@ export const registerAdmin = async (req, res) => {
         console.error(err)
         return res
             .status(500)
-            .send({ message: 'Error registering user', err: err })
+            .send({ message: 'Error registering Admin', err: err })
     }
 }
 

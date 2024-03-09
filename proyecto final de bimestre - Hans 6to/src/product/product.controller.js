@@ -42,7 +42,7 @@ export const getProductById = async (req, res) => {
 // Obtener todos los productos del catálogo
 export const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.getAllProducts()
+        const products = await Product.find()
         res.status(200).send(products)
     } catch (err) {
         res.status(500).send({ message: err.message })
@@ -77,16 +77,19 @@ export const deleteProduct = async (req, res) => {
 //Ver productos con valor a 0
 export const getNoProducts = async (req, res) => {
     try {
-        //ver todos los productos con 0 de stock
-        let units = await Product.findOne({ units_available: 0 })
-        if (!units) return res.status(404).send({ message: 'NO EXIST' })
-        //retornamos todos los productos sin existencia
-        return res.send({ units })
+        // Ver todos los productos con 0 de stock
+        const products = await Product.find({ units_available: 0 });
+        if (!products || products.length === 0) {
+            return res.status(404).send({ message: 'No existen productos con stock igual a 0.' });
+        }
+        // Retornar todos los productos sin existencia
+        return res.send({ products });
     } catch (err) {
-        console.error(err)
-        return res.status(500).send({ message: 'Error getting Products' })
+        console.error(err);
+        return res.status(500).send({ message: 'Error al obtener los productos.' });
     }
-}
+};
+
 // ACTUALIZA EL PRODUCTO
 export const update = async (req, res) => {
     try {
@@ -127,7 +130,7 @@ export const update = async (req, res) => {
 //visualizar el catálogo de productos más vendidos
 export const getPopularProducts = async (req, res) => {
     try {
-        // Obtener los productos más vendidos
+        // Obtener los productos más vendidos con sus detalles
         const popularProducts = await Bill.aggregate([
             { $unwind: '$products' }, // Desenrollar los productos para poder agruparlos
             {
@@ -137,14 +140,25 @@ export const getPopularProducts = async (req, res) => {
                 },
             }, // Agrupar por producto y sumar las cantidades
             { $sort: { totalQuantity: -1 } }, // Ordenar en orden descendente por cantidad total
-            { $limit: 3 },
-        ])
+            { $limit: 3 }, // Limitar a los 3 productos más vendidos
+            {
+                $lookup: { // Realizar un join para obtener los detalles completos del producto
+                    from: 'products', // Nombre de la colección de productos
+                    localField: '_id', // Campo local a unir
+                    foreignField: '_id', // Campo en la colección de productos a unir
+                    as: 'productDetails' // Nombre del campo para almacenar los detalles del producto
+                }
+            },
+            { $unwind: '$productDetails' } // Desenrollar los detalles del producto
+        ]);
 
-        res.send(popularProducts)
+        res.send(popularProducts);
     } catch (error) {
-        res.status(500).send({ error: error.message })
+        res.status(500).send({ error: error.message });
     }
-}
+};
+
+
 
 //buscar productos por nombre
 export const searchProductsByName = async (req, res) => {

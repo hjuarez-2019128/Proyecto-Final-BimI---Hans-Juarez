@@ -1,7 +1,7 @@
 import Category from './category.model.js'
 import Product from '../product/product.model.js'
 import { checkUpdate } from '../utils/validator.js'
-const DEFAULT_CATEGORY_ID = '65e897f61fe47b7ed6a37c75' // aqui debes pegar el id la categoria que vas a usar por defecto en mi caso este fue el ID
+const DEFAULT_CATEGORY_ID = '65ebdad90087693b53d8c941' // aqui debes pegar el id la categoria que vas a usar por defecto en mi caso este fue el ID
 
 export const test = (req, res) => {
     console.log('test is running')

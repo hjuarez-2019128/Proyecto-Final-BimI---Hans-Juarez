@@ -7,12 +7,12 @@ import {getProductsByCategory, update, getNoProducts, deleteProduct, createProdu
 
 
 //  visualizar el catálogo completo
-api.get('/products', [validateJwt, isAdmin, isClient] , getAllProducts);
+api.get('/products', [validateJwt] , getAllProducts);
 
 // Ruta para crear un nuevo producto
 api.post('/save',  [validateJwt, isAdmin], createProduct)
 // visualizar tanto productos individuales
-api.get('/products/:productId', getProductById);
+api.get('/products/:productId',[validateJwt, isAdmin], getProductById);
 
 // ver productos sin existencia
 api.get('/getNoProducts',[validateJwt, isAdmin], getNoProducts)
@@ -24,14 +24,15 @@ api.put('/update/:id',[validateJwt, isAdmin], update)
 // OPCIONES DEL CLIENTE  Exploración de Productos
 
 // Ruta para obtener los productos más vendidos
-api.get('/popular', [validateJwt, isClient], getPopularProducts);
+api.get('/popular',[validateJwt], getPopularProducts);
 
 // Ruta para obtener todas las categorías existentes
-api.get('/categories',[validateJwt, isClient], getAllCategories);
+api.get('/categories',[validateJwt], getAllCategories);
 
-// Ruta para buscar productos por nombre
-api.get('/search',[validateJwt, isClient], searchProductsByName);
+// Ruta para buscar productos por nombre Búsqueda por coincidencia
+api.get('/search',[validateJwt], searchProductsByName);
 
-api.get('/categories/products/:categoryId',[validateJwt, isClient], getProductsByCategory);
+// POR CATEGORIA
+api.get('/categories/products/:categoryId',[validateJwt], getProductsByCategory);
 
 export default api
